@@ -38,3 +38,49 @@ async function streamLogs() {
 }
 
 streamLogs();
+// CONFIGURAZIONE Δ-Ω LIVE
+const TOKEN = "g7HkNT3XTk2vkHBHKBcYzY4b"; // Il tuo Token API
+const DEPLOY_ID = "h5degks4w"; // L'ID del tuo deployment
+
+async function streamLogs() {
+    const logContainer = document.getElementById('log-terminal');
+    
+    try {
+        // Handshake con i server Vercel per lo streaming real-time
+        const response = await fetch(`https://api.vercel.com/v3/deployments/${DEPLOY_ID}/events?follow=1`, {
+            headers: { "Authorization": `Bearer ${TOKEN}` }
+        });
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        while (true) {
+            const { value, done } = await reader.read();
+            if (done) break;
+            
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop(); // Mantiene l'integrità dei dati parziali
+            
+            for (const line of lines) {
+                if (!line.trim()) continue;
+                try {
+                    const log = JSON.parse(line);
+                    const el = document.createElement('p');
+                    
+                    // Verde per attività standard, Rosso per errori
+                    el.style.color = log.type === 'error' ? '#ff0000' : '#00ff00';
+                    el.textContent = `> [${new Date(log.created).toLocaleTimeString()}] ${log.text}`;
+                    
+                    logContainer.prepend(el); // Mostra l'ultimo evento in alto
+                } catch (e) { /* Salta JSON frammentati */ }
+            }
+        }
+    } catch (err) {
+        console.error("Errore di connessione protocollo Δ-Ω:", err);
+    }
+}
+
+// Inizializzazione
+streamLogs();
