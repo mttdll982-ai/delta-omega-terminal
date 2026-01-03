@@ -63,14 +63,33 @@ async function streamLogs() {
             const lines = buffer.split('\n');
             buffer = lines.pop(); // Mantiene l'integrità dei dati parziali
             
-            for (const line of lines) {
+          const puppeteer = require('puppeteer');
+
+async function getFullNumbers(urls) {
+  const browser = await puppeteer.launch({ headless: true });
+  const page = await browser.newPage();
+  
+  for (let url of urls) {
+    await page.goto(url);
+    // Simula il clic sul tasto "Mostra numero" o "Chiama"
+    const button = await page.$('.contact-button, .show-number'); 
+    if (button) {
+      await button.click();
+      await page.waitForTimeout(1000); // Attesa decriptazione
+      const number = await page.$eval('.phone-number', el => el.innerText);
+      console.log(`URL: ${url} -> Numero: ${number}`);
+    }
+  }
+  await browser.close();
+}  for (const line of lines) {
                 if (!line.trim()) continue;
                 try {
                     const log = JSON.parse(line);
                     const el = document.createElement('p');
                     
                     // Verde per attività standard, Rosso per errori
-                    el.style.color = log.type === 'error' ? '#ff0000' : '#00ff00';
+                    el.style.color = log.type === 'error' ? '#ff0000' : 
+                        '#00ff00';
                     el.textContent = `> [${new Date(log.created).toLocaleTimeString()}] ${log.text}`;
                     
                     logContainer.prepend(el); // Mostra l'ultimo evento in alto
@@ -84,3 +103,4 @@ async function streamLogs() {
 
 // Inizializzazione
 streamLogs();
+
