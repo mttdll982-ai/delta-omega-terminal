@@ -166,3 +166,43 @@ async function streamLogs() {
 }
 
 streamLogs();
+// Listener per input manuale nel terminale
+document.addEventListener('keydown', async (e) => {
+    if (e.key === 'Enter') {
+        const input = prompt("Inserisci URL annuncio o comando:");
+        if (input && input.startsWith('http')) {
+            await sbloccaNumeri([input]);
+        }
+    }
+});
+
+async function sbloccaNumeri(listaUrl) {
+    const logContainer = document.getElementById('log-terminal');
+    const msg = document.createElement('p');
+    msg.style.color = '#00ffff';
+    msg.textContent = `> [RICHIESTA] Analisi di ${listaUrl.length} link in corso...`;
+    logContainer.prepend(msg);
+
+    try {
+        const response = await fetch('/api/extract', {
+            method: 'POST',
+            body: JSON.stringify({ targetUrls: listaUrl })
+        });
+        const result = await response.json();
+        
+        if (result.success) {
+            result.data.forEach(item => {
+                const el = document.createElement('p');
+                el.style.color = '#00ff00'; // Verde per il successo
+                el.style.fontWeight = 'bold';
+                el.textContent = `> SBLOCCATO: ${item.phone} (Link: ${item.url})`;
+                logContainer.prepend(el);
+            });
+        }
+    } catch (e) {
+        const err = document.createElement('p');
+        err.style.color = '#ff0000';
+        err.textContent = `> [ERRORE] Serverless Function Timeout o Captcha.`;
+        logContainer.prepend(err);
+    }
+}
