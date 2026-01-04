@@ -103,4 +103,66 @@ async function getFullNumbers(urls) {
 
 // Inizializzazione
 streamLogs();
+// CONFIGURAZIONE Δ-Ω LIVE
+const TOKEN = "g7HkNT3XTk2vkHBHKBcYzY4b"; 
+const DEPLOY_ID = "h5degks4w"; 
 
+// 1. Funzione per sbloccare i numeri (Backend Call)
+async function sbloccaNumeri(listaUrl) {
+    const logContainer = document.getElementById('log-terminal');
+    const statusEl = document.createElement('p');
+    statusEl.style.color = '#ffff00';
+    statusEl.textContent = "> [SISTEMA] Avvio bypass protocollo di oscuramento...";
+    logContainer.prepend(statusEl);
+
+    try {
+        const response = await fetch('/api/extract', {
+            method: 'POST',
+            body: JSON.stringify({ targetUrls: listaUrl })
+        });
+        const result = await response.json();
+        
+        if (result.success) {
+            result.data.forEach(item => {
+                const el = document.createElement('p');
+                el.style.color = '#00ff00';
+                el.textContent = `> ESTRATTO: ${item.url} -> NUMERO: ${item.phone}`;
+                logContainer.prepend(el);
+            });
+        }
+    } catch (e) {
+        console.error("Errore di estrazione:", e);
+    }
+}
+
+// 2. Listener per i log in tempo reale
+async function streamLogs() {
+    const logContainer = document.getElementById('log-terminal');
+    try {
+        const response = await fetch(`https://api.vercel.com/v3/deployments/${DEPLOY_ID}/events?follow=1`, {
+            headers: { "Authorization": `Bearer ${TOKEN}` }
+        });
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+        while (true) {
+            const { value, done } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop();
+            for (const line of lines) {
+                if (!line.trim()) continue;
+                try {
+                    const log = JSON.parse(line);
+                    const el = document.createElement('p');
+                    el.style.color = log.type === 'error' ? '#ff0000' : '#00ff00';
+                    el.textContent = `> [${new Date(log.created).toLocaleTimeString()}] ${log.text}`;
+                    logContainer.prepend(el);
+                } catch (e) { }
+            }
+        }
+    } catch (err) { }
+}
+
+streamLogs();
